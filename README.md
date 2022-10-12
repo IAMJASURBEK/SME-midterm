@@ -19,7 +19,7 @@ Make sure to add the description, maintainer email and name, and license informa
 <license>Apache License 2.0</license>
 ```
 
-1.1 Update __setup.py__
+1.2 Update __setup.py__
 
 Add the same information to the __setup.py__ file for the __maintainer__, __maintainer_email__, __description__ and __license__ fields:
 
