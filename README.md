@@ -178,7 +178,7 @@ Enter __Ctrl+C__ in the server terminal to stop the node from spinning
 
 
 
-## Creating custom msg and srv files
+# Creating custom msg and srv files
 
 ### 1. Creating a new package
 
