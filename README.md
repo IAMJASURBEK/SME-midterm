@@ -399,3 +399,117 @@ ros2 run py_pubsub listener
 
 ![sdw2](https://user-images.githubusercontent.com/90182787/196334165-bf5dd043-1018-44b7-ac27-1b6f568829f4.jpg)
 
+### 7.2 Testing AddThreeInts.srv with service/client
+
+Open the Service file and change it as following
+
+```python
+from tutorial_interfaces.srv import AddThreeInts                                                           # CHANGE
+
+import rclpy
+from rclpy.node import Node
+
+
+class MinimalService(Node):
+
+    def __init__(self):
+        super().__init__('minimal_service')
+        self.srv = self.create_service(AddThreeInts, 'add_three_ints', self.add_three_ints_callback)       # CHANGE
+
+    def add_three_ints_callback(self, request, response):
+        response.sum = request.a + request.b + request.c                                                   # CHANGE
+        self.get_logger().info('Incoming request\na: %d b: %d c: %d' % (request.a, request.b, request.c))  # CHANGE
+
+        return response
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    minimal_service = MinimalService()
+
+    rclpy.spin(minimal_service)
+
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+Client file
+
+```python
+from tutorial_interfaces.srv import AddThreeInts                            # CHANGE
+import sys
+import rclpy
+from rclpy.node import Node
+
+
+class MinimalClientAsync(Node):
+
+    def __init__(self):
+        super().__init__('minimal_client_async')
+        self.cli = self.create_client(AddThreeInts, 'add_three_ints')       # CHANGE
+        while not self.cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('service not available, waiting again...')
+        self.req = AddThreeInts.Request()                                   # CHANGE
+
+    def send_request(self):
+        self.req.a = int(sys.argv[1])
+        self.req.b = int(sys.argv[2])
+        self.req.c = int(sys.argv[3])                                       # CHANGE
+        self.future = self.cli.call_async(self.req)
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    minimal_client = MinimalClientAsync()
+    minimal_client.send_request()
+
+    while rclpy.ok():
+        rclpy.spin_once(minimal_client)
+        if minimal_client.future.done():
+            try:
+                response = minimal_client.future.result()
+            except Exception as e:
+                minimal_client.get_logger().info(
+                    'Service call failed %r' % (e,))
+            else:
+                minimal_client.get_logger().info(
+                    'Result of add_three_ints: for %d + %d + %d = %d' %                                # CHANGE
+                    (minimal_client.req.a, minimal_client.req.b, minimal_client.req.c, response.sum))  # CHANGE
+            break
+
+    minimal_client.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+Add the following line to package.xml
+
+```python
+<exec_depend>tutorial_interfaces</exec_depend>
+```
+
+After making the above edits and saving all the changes, build the package
+
+```python
+colcon build --packages-select py_srvcli
+```
+
+Then open two new terminals, source __ros2_ws__ in each, and run
+
+```python
+ros2 run py_srvcli service
+```
+
+```python
+ros2 run py_srvcli client 2 3 1
+```
+
+![photo_2022-10-18_13-30-00](https://user-images.githubusercontent.com/90182787/196335805-239a7755-199e-4e46-8062-1a4529ba9873.jpg)
+
+![photo_2022-10-18_13-30-05](https://user-images.githubusercontent.com/90182787/196335841-12191277-c54e-43f5-b79a-be8bf8ee0c53.jpg)
