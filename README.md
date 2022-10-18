@@ -224,7 +224,7 @@ int64 c
 int64 sum
 ```
 
-### 3. __CMakelists.txt
+### 3. CMakelists.txt
 
 To convert the interfaces you defined into language-specific code (like C++ and Python) so that they can be used in those languages, add the following lines to __CMakeLists.txt__
 
@@ -240,7 +240,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 ```
 
-### 4. __package.xml
+### 4. package.xml
 
 Add the following lines to __package.xml__
 
@@ -287,11 +287,115 @@ And
 ros2 interface show tutorial_interfaces/srv/AddThreeInts
 ```
 
-![wesd](https://user-images.githubusercontent.com/90182787/196333115-0aeb27dc-091d-493c-9d7e-aa4043ebe5c7.jpg)
+![fes1](https://user-images.githubusercontent.com/90182787/196334235-e5ea756b-496f-4adf-8dc0-8cc0b5787a9c.jpg)
+
+### 7. Test the new interfaces
 
 
+### 7.1 Testing Num.msg with pub/sub
+
+Open the publisher file and change it accordingly
+
+```python
+import rclpy
+from rclpy.node import Node
+
+from tutorial_interfaces.msg import Num                            # CHANGE
 
 
+class MinimalPublisher(Node):
+
+    def __init__(self):
+        super().__init__('minimal_publisher')
+        self.publisher_ = self.create_publisher(Num, 'topic', 10)  # CHANGE
+        timer_period = 0.5
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.i = 0
+
+    def timer_callback(self):
+        msg = Num()                                                # CHANGE
+        msg.num = self.i                                           # CHANGE
+        self.publisher_.publish(msg)
+        self.get_logger().info('Publishing: "%d"' % msg.num)       # CHANGE
+        self.i += 1
 
 
+def main(args=None):
+    rclpy.init(args=args)
+
+    minimal_publisher = MinimalPublisher()
+
+    rclpy.spin(minimal_publisher)
+
+    minimal_publisher.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+
+Open the subscriber file and change it accordingly
+```python
+import rclpy
+from rclpy.node import Node
+
+from tutorial_interfaces.msg import Num                        # CHANGE
+
+
+class MinimalSubscriber(Node):
+
+    def __init__(self):
+        super().__init__('minimal_subscriber')
+        self.subscription = self.create_subscription(
+            Num,                                               # CHANGE
+            'topic',
+            self.listener_callback,
+            10)
+        self.subscription
+
+    def listener_callback(self, msg):
+            self.get_logger().info('I heard: "%d"' % msg.num)  # CHANGE
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    minimal_subscriber = MinimalSubscriber()
+
+    rclpy.spin(minimal_subscriber)
+
+    minimal_subscriber.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+in the __package.xml__ add the following line
+
+```python
+<exec_depend>tutorial_interfaces</exec_depend>
+```
+After making the above edits and saving all the changes, build the package
+
+```python
+colcon build --packages-select py_pubsub
+```
+
+Then open two new terminals, source __ros2_ws__ in each, and run
+
+```python
+ros2 run py_pubsub talker
+```
+
+```python
+ros2 run py_pubsub listener
+```
+
+![sdw1](https://user-images.githubusercontent.com/90182787/196334147-f57f8c09-c07b-4466-8884-dbc79a9d349c.jpg)
+
+![sdw2](https://user-images.githubusercontent.com/90182787/196334165-bf5dd043-1018-44b7-ac27-1b6f568829f4.jpg)
 
